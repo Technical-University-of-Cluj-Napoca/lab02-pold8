@@ -1,8 +1,3 @@
-"""
-This module is implementing a search loop for autocomplete suggestions using a binary search tree (BST)
-inside the `search_loop` function.
-"""
-
 import sys
 import os
 
@@ -14,7 +9,6 @@ def get_char() -> str:
     """
     ch = ""
     try:
-        # Unix-like system (i.e. Mac, Linux)
         import termios, tty
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
@@ -24,9 +18,15 @@ def get_char() -> str:
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     except ImportError:
-        # Windows system
         import msvcrt
-        ch =  msvcrt.getch().decode("utf-8")
+        raw_ch = msvcrt.getch()
+        if raw_ch == b'\x1b':
+            ch = '\x1b'
+        elif raw_ch in (b'\x00', b'\xe0'):
+            msvcrt.getch()
+            ch = ""
+        else:
+            ch = raw_ch.decode("utf-8")
     return ch
 
 
@@ -43,25 +43,25 @@ def search_loop(bst: 'BST') -> None:
     while True:
         ch = get_char()
 
-        # Exit on ESC
+        if not ch:
+            continue
+
         if ord(ch) == 27:
             print("\nExiting...")
             break
 
-        # Backspace (delete last char)
-        if ch in ("\b", "\x7f"):            # \x7f for Linux/mac
+        if ch in ("\b", "\x7f"):
             prefix = prefix[:-1]
-        elif ch == "\r":                    # ignore carriage return key (aka, Windows Enter)
+        elif ch == "\r":
             continue
         else:
             prefix += ch.lower()
 
-        # Clear screen for nice output
         os.system("cls" if os.name == "nt" else "clear")
         print(f"Search for >> {prefix}")
         suggestions = bst.autocomplete(prefix)
         if suggestions:
-            for s in suggestions[:7]:  # show only first 7 suggestions
+            for s in suggestions[:7]:
                 print(s)
         else:
             print("No matches found.")
